@@ -75,6 +75,11 @@ public class Liferay70Adapter implements LiferayAdapter {
     }
 
     @Override
+    public String getPortalURL(HttpServletRequest request) {
+        return PortalUtil.getPortalURL(request);
+    }
+
+    @Override
     public boolean isUserLoggedIn(HttpServletRequest request) {
         try {
             return PortalUtil.getUser(request) != null;

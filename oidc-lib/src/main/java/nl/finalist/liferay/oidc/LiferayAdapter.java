@@ -15,6 +15,8 @@ public interface LiferayAdapter {
 
     String getCurrentCompleteURL(HttpServletRequest request);
 
+    String getPortalURL(HttpServletRequest request);
+
     boolean isUserLoggedIn(HttpServletRequest request);
 
     long getCompanyId(HttpServletRequest request);
