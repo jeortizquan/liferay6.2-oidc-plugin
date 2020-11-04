@@ -53,9 +53,10 @@ public class LibFilter {
     public static final String OPENID_CONNECT_UG_SESSION_ATTR = "OpenIDConnectUserGroupInfo";
 
     private final LiferayAdapter liferay;
-
+    private final LibEncrypt libEncrypt;
     public LibFilter(LiferayAdapter liferay) {
         this.liferay = liferay;
+        this.libEncrypt = new LibEncrypt(liferay);
     }
 
 
@@ -179,11 +180,11 @@ public class LibFilter {
             if (oidcConfiguration.providerType().toUpperCase().equals("AZURE-DEFAULT")) {
                 liferay.debug("Setting UserGroups from Azure AD in session: ");
                 String userGroups = getUserGroupsInfoFromGraph(oidcConfiguration.userMembership(), accessToken);
-                request.getSession().setAttribute(OPENID_CONNECT_UG_SESSION_ATTR, userGroups);
+                request.getSession().setAttribute(OPENID_CONNECT_UG_SESSION_ATTR, libEncrypt.encrypt(userGroups,oidcConfiguration.secret()));
             }
 
             liferay.debug("Setting OpenIDUserInfo object in session: " + openIDUserInfo);
-            request.getSession().setAttribute(OPENID_CONNECT_SESSION_ATTR, openIDUserInfo);
+            request.getSession().setAttribute(OPENID_CONNECT_SESSION_ATTR, libEncrypt.encrypt(userInfoResponse.getBody(),oidcConfiguration.secret()));
         } catch (OAuthSystemException | OAuthProblemException e) {
             throw new IOException("While exchanging code for access token and retrieving user info", e);
         }

@@ -1,5 +1,6 @@
 package nl.finalist.liferay.oidc;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import nl.finalist.liferay.oidc.providers.UserInfoProvider;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -10,6 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,9 +24,10 @@ import java.util.UUID;
 public class LibAutoLogin {
 
     private final LiferayAdapter liferay;
-
+    private final LibEncrypt libEncrypt;
     public LibAutoLogin(LiferayAdapter liferay) {
         this.liferay = liferay;
+        this.libEncrypt = new LibEncrypt(liferay);
         liferay.info("Initialized LibAutoLogin with Liferay API: " + liferay.getClass().getName());
     }
 
@@ -37,9 +40,23 @@ public class LibAutoLogin {
 
         if (oidcConfiguration.isEnabled()) {
             HttpSession session = request.getSession();
-            Map<String, String> userInfo = (Map<String, String>) session.getAttribute(
-                    LibFilter.OPENID_CONNECT_SESSION_ATTR);
+            String openIdUserInfo = (String) session.getAttribute(LibFilter.OPENID_CONNECT_SESSION_ATTR);
+            if (openIdUserInfo != null && !openIdUserInfo.isEmpty()) {
+                openIdUserInfo = libEncrypt.decrypt(openIdUserInfo, oidcConfiguration.secret());
+            }
+
+            Map<String, String> userInfo = null;
+            try {
+                userInfo = new ObjectMapper().readValue(openIdUserInfo, HashMap.class);
+            } catch (Exception e) {
+                liferay.warn("while reading user information: " + e.getMessage());
+            }
+
             String userGroups = (String) session.getAttribute(LibFilter.OPENID_CONNECT_UG_SESSION_ATTR);
+            if(userGroups !=null && !userGroups.isEmpty()) {
+                userGroups = libEncrypt.decrypt(userGroups, oidcConfiguration.secret());
+            }
+
             UserInfoProvider provider = ProviderFactory.getOpenIdProvider(oidcConfiguration.providerType());
 
             if (userInfo == null) {
