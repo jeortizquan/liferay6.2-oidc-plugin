@@ -25,6 +25,7 @@ public class LibAutoLogin {
 
     private final LiferayAdapter liferay;
     private final LibEncrypt libEncrypt;
+
     public LibAutoLogin(LiferayAdapter liferay) {
         this.liferay = liferay;
         this.libEncrypt = new LibEncrypt(liferay);
@@ -37,8 +38,11 @@ public class LibAutoLogin {
         long companyId = liferay.getCompanyId(request);
 
         OIDCConfiguration oidcConfiguration = liferay.getOIDCConfiguration(companyId);
+        if (request.getServletPath().equals("/web")) {
+            liferay.trace("Redirecting to static content");
+            return userResponse;
 
-        if (oidcConfiguration.isEnabled()) {
+        } else if (oidcConfiguration.isEnabled()) {
             HttpSession session = request.getSession();
             String openIdUserInfo = (String) session.getAttribute(LibFilter.OPENID_CONNECT_SESSION_ATTR);
             if (openIdUserInfo != null && !openIdUserInfo.isEmpty()) {
@@ -53,7 +57,7 @@ public class LibAutoLogin {
             }
 
             String userGroups = (String) session.getAttribute(LibFilter.OPENID_CONNECT_UG_SESSION_ATTR);
-            if(userGroups !=null && !userGroups.isEmpty()) {
+            if (userGroups != null && !userGroups.isEmpty()) {
                 userGroups = libEncrypt.decrypt(userGroups, oidcConfiguration.secret());
             }
 
@@ -92,7 +96,7 @@ public class LibAutoLogin {
 
     private String getRedirectLoginUri(HttpServletRequest request) {
         String completeURL = liferay.getPortalURL(request);
-        return completeURL.replaceAll("\\?.*", "")+"/c/portal/login";
+        return completeURL.replaceAll("\\?.*", "") + "/c/portal/login";
     }
 
     private String generateStateParam(HttpServletRequest request) {
